@@ -1,57 +1,47 @@
 const express = require('express');
+const cars = require('./cars-model');
+const { checkCarId, checkCarPayload, checkVinNumberUnique, checkVinNumberValid} = require('./cars-middleware');
+
 const router = express.Router();
-const Cars = require('./cars-model');
-const {
-    checkVinNumberUnique,
-    checkVinNumberValid,
-    checkCarPayload,
-    checkCarId
- } = require('./cars-middleware');
 
-
-router.get('/api/cars', async (req, res, next) => {
-    try {
-        const carResults = await Cars.getAll();
-        res.status(200).json(carResults);
-    } catch (err) {
-        next(err);
-    }
+router.get("/", (req, res, next) => {
+    cars.getAll()
+        .then((resp) => {
+            res.status(200).json(resp);
+        }).catch(next);
 })
 
-router.get('/api/cars/:id', checkCarId(), async (req, res, next) => {
-    try {
-        const car = await Cars.getById(req.params.id);
-        res.status(200).json(car);
-    } catch (err) {
-        next(err);
-    }
+router.get("/:id", [checkCarId], (req, res, next) => {
+    const { id } = req.params;
+
+    cars.getById(id)
+        .then((resp) => {
+            res.status(200).json(resp);
+        }).catch(next);
 })
 
-router.post('/api/cars', checkCarPayload(),checkVinNumberValid(), checkVinNumberUnique(), async (req, res, next) => {
-    try {
-        const newCar = await Cars.addNew(req.body);
-        res.status(201).json(newCar)
-    } catch (err) {
-        next(err);
-    }
+router.post("/", [checkCarPayload, checkVinNumberValid, checkVinNumberUnique], (req, res, next) => {
+    const neoCar = req.body;
+
+    cars.create(neoCar)
+        .then((resp) => {
+            cars.getById(resp)
+                .then(r2 => {
+                    res.status(201).json(r2);
+                }).catch(next);
+        }).catch(next);
 })
 
-router.put('/api/cars/:id', checkCarId(), checkVinNumberValid(), checkVinNumberUnique(), checkCarPayload(), async (req, res, next) => {
-    try {
-        const carUpdates = req.body;
-        const updatedCar = await Cars.updateById(req.params.id, carUpdates);
-        res.status(201).json(updatedCar)
-    } catch (err) {
-        next(err);
-    }
-})
+router.use((err, req, res, next) => {
+    const status = err.status || 500;
 
-router.delete('/api/cars/:id', checkCarId(), async (req, res, next) => {
-    try {
-       await Cars.removeById(req.params.id);
-       res.status(204).end()
-    } catch (err) {
-        next(err);
+    res.status(status).json({
+        message: "Error in car router",
+        err: err.message
+    });
+
+    if (err.message === 0) {
+        next();
     }
 })
 
