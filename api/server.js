@@ -1,20 +1,20 @@
-const express = require("express");
-const cors = require("cors");
-
-const carsRouter = require("./cars/cars-router");
-
-const server = express();
-server.use(express.json());
-server.use(cors());
-
 // DO YOUR MAGIC
+const express = require('express');
+const carsRouter = require('./cars/cars-router');
+const salesRouter = require('./sales/sales-router');
 
-server.use("/api/cars", carsRouter);
+const server = express()
 
-server.use("*", (req, res) => {
-  res.status(404).json({
-    message: "That endpoint does not exist.",
-  });
-});
+server.use(express.json())
 
-module.exports = server;
+server.use(carsRouter)
+server.use(salesRouter)
+
+server.use((err, req, res, next) => {
+	console.log(err)
+	res.status(500).json({
+		message: "Something went wrong",
+	})
+})
+
+module.exports = server
